@@ -6,21 +6,22 @@ services:
       context: elasticsearch/
       args:
         ELK_VERSION: $ELK_VERSION
+    restart: always
+    environment:
+      # Use single node discovery in order to disable production mode and avoid bootstrap checks
+      # see https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
+      discovery.type: single-node
+      ES_JAVA_OPTS: $JAVA_OPTS
+      ELASTIC_PASSWORD: Awesome9999
+    ports:
+      - 9200:9200
+      - 9300:9300
     volumes:
       - ~/docker/elasticsearch/data:/usr/share/elasticsearch/data
       - type: bind
         source: ./elasticsearch/config/elasticsearch.yml
         target: /usr/share/elasticsearch/config/elasticsearch.yml
         read_only: true
-    ports:
-      - "9200:9200"
-      - "9300:9300"
-    environment:
-      ES_JAVA_OPTS: "-Xmx1g -Xms1g"
-      ELASTIC_PASSWORD: Awesome9999
-      # Use single node discovery in order to disable production mode and avoid bootstrap checks
-      # see https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
-      discovery.type: single-node
     networks:
       - elk
 
@@ -29,6 +30,13 @@ services:
       context: logstash/
       args:
         ELK_VERSION: $ELK_VERSION
+    restart: always
+    environment:
+      LS_JAVA_OPTS: $JAVA_OPTS
+    ports:
+      - 5000:5000/tcp
+      - 5000:5000/udp
+      - 9600:9600
     volumes:
       - type: bind
         source: ./logstash/config/logstash.yml
@@ -38,12 +46,6 @@ services:
         source: ./logstash/pipeline
         target: /usr/share/logstash/pipeline
         read_only: true
-    ports:
-      - "5000:5000/tcp"
-      - "5000:5000/udp"
-      - "9600:9600"
-    environment:
-      LS_JAVA_OPTS: "-Xmx1g -Xms1g"
     networks:
       - elk
     depends_on:
@@ -54,13 +56,14 @@ services:
       context: kibana/
       args:
         ELK_VERSION: $ELK_VERSION
+    restart: always
+    ports:
+      - 5601:5601
     volumes:
       - type: bind
         source: ./kibana/config/kibana.yml
         target: /usr/share/kibana/config/kibana.yml
         read_only: true
-    ports:
-      - "5601:5601"
     networks:
       - elk
     depends_on:
